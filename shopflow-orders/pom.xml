@@ -71,6 +71,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Kafka (T13 — EDA) -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- ArchUnit (T11 — hexagonal architecture enforcement) -->
         <dependency>
             <groupId>com.tngtech.archunit</groupId>

@@ -21,6 +21,7 @@
     <modules>
         <module>shopflow-orders</module>
         <module>shopflow-payments-stub</module>
+        <module>shopflow-notifications</module>
     </modules>
 
     <properties>
