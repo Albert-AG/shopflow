@@ -35,11 +35,11 @@ public class OrderMapper {
         return new OrderResponse(
                 order.id().value().toString(),
                 order.status().name(),
-                null, // BUG #1: debería ser order.totalAmount().amount().toPlainString()
+                order.totalAmount().amount().toPlainString(),
                 order.discountCode(),
                 order.items().stream()
                         .map(this::toItemResponse)
-                        .collect(Collectors.toList()) // BUG #2: lista mutable — usar .toList()
+                        .toList()
         );
     }
 
