@@ -8,9 +8,6 @@ import java.util.List;
  *
  * Encapsulates the lifecycle of a B2B order.
  * Business invariants are enforced here, not in the service layer.
- *
- * Note: In T04 this is a simple record. It will evolve to a richer
- * domain model with semantic methods in T12 (DDD session).
  */
 public record Order(
         OrderId id,
