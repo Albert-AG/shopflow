@@ -10,13 +10,6 @@ import java.util.stream.Collectors;
 
 /**
  * Maps between domain objects and REST DTOs.
- *
- * ⚠️ DEMO T06 — Agent Mode: Este mapper fue generado por el agente
- * durante la demo de "discountCode propagation". Contiene dos bugs sutiles.
- * El alumno debe detectarlos durante la revisión del diff.
- *
- * Bug #1: totalAmount se mapea como null en lugar de order.totalAmount().amount().toPlainString()
- * Bug #2: Collectors.toList() devuelve una lista mutable (usar .toList() en Java 16+)
  */
 @Component
 public class OrderMapper {
