@@ -57,3 +57,12 @@ src/main/java/com/shopflow/orders/
 - Borrar o renombrar clases existentes.
 - Modificar `BeforeAiExample.java` (es material didáctico, no tocar).
 - Añadir migraciones de base de datos (hasta que se use Flyway).
+
+---
+
+## Historial de Versiones del Proyecto (uso interno)
+
+| Tag | Tema | Contenido añadido |
+|-----|------|-------------------|
+| `v01-bootstrap` | T01 | Esqueleto Maven, BeforeAiExample, EnvironmentSanityCheck |
+| `v02-tooling` | T02 | CLAUDE.md, copilot-instructions.md, settings.json |
