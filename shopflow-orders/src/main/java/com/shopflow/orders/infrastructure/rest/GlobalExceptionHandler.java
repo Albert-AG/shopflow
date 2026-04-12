@@ -13,12 +13,6 @@ import java.net.URI;
 
 /**
  * Global exception handler using RFC 7807 ProblemDetail.
- *
- * Generated in T09 with Chat:
- * "Añade un @RestControllerAdvice que maneje OrderNotFoundException con 404,
- * MethodArgumentNotValidException con 400, e IllegalStateException con 409.
- * Usa ProblemDetail (RFC 7807) para todas las respuestas de error.
- * Incluye el traceId del MDC en el detalle cuando esté disponible."
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
