@@ -1,0 +1,33 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+spring.log
+HELP.md
+
+# Environment files (secrets never in git)
+.env
+.env.local
+*.env
+
+# Logs
+logs/
+*.log
