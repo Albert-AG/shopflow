@@ -3,26 +3,21 @@ package com.shopflow.orders.domain.model;
 /**
  * Represents a line item within an Order.
  * Minimum quantity: 1. Unit price cannot be negative.
+ *
+ * --- EJERCICIO T04: Completa este record usando autocompletado ---
+ * Instrucciones:
+ * 1. Abre Order.java y Money.java en tabs del IDE (neighboring files).
+ * 2. Usa autocompletado para completar los campos del record.
+ *    El IDE debería sugerir ProductId, int, Money a partir del contexto.
+ * 3. Añade el compact constructor con las validaciones necesarias.
+ * 4. Añade el método subtotal() que calcula precio * cantidad.
+ *
+ * Criterio de éxito: OrderItemTest.java pasa sin modificaciones.
  */
 public record OrderItem(
-        ProductId productId,
-        int quantity,
-        Money unitPrice
+        // TODO: completa los campos usando autocompletado
+        // El IDE debe sugerir ProductId, int, Money a partir de los neighboring files
 ) {
-
-    public OrderItem {
-        if (productId == null) {
-            throw new IllegalArgumentException("ProductId cannot be null");
-        }
-        if (quantity < 1) {
-            throw new IllegalArgumentException("Quantity must be at least 1, got: " + quantity);
-        }
-        if (unitPrice == null) {
-            throw new IllegalArgumentException("Unit price cannot be null");
-        }
-    }
-
-    public Money subtotal() {
-        return unitPrice.multiply(quantity);
-    }
+    // TODO: añade compact constructor con validaciones
+    // TODO: añade método subtotal()
 }
