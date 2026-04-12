@@ -10,22 +10,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * EJERCICIO T11 — Estado con violaciones de arquitectura.
- *
- * Este servicio está en el paquete domain.service pero:
- * 1. Usa @Service (anotación de Spring → viola "dominio sin Spring")
- * 2. Depende directamente de JpaOrderRepository (infraestructura → viola "dominio sin infra")
- * 3. OrderController llamará a esta clase directamente (REST → domain.service)
- *
- * Los tres tests de HexagonalArchitectureTest FALLAN con este estado.
- * El ejercicio consiste en refactorizar hasta que los tres pasen.
- */
 @Service
 @Transactional
 public class OrderDomainService {
 
-    // VIOLACIÓN: dependencia directa de infraestructura en el dominio
     private final JpaOrderRepository orderRepository;
 
     public OrderDomainService(JpaOrderRepository orderRepository) {
