@@ -20,6 +20,7 @@
 
     <modules>
         <module>shopflow-orders</module>
+        <module>shopflow-payments-stub</module>
     </modules>
 
     <properties>
