@@ -71,6 +71,17 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Security (T16) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Kafka (T13 — EDA) -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
