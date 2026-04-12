@@ -4,8 +4,6 @@ import java.util.UUID;
 
 /**
  * Value Object that identifies a Customer.
- * Created by the student in T04 as a neighboring-files exercise
- * (using OrderId as reference).
  */
 public record CustomerId(UUID value) {
 
