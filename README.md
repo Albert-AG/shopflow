@@ -114,6 +114,7 @@ git checkout v11-hexagonal
 | Rama | Tema | Tu misión |
 |------|------|-----------|
 | `exercise/topic-04` | T04 — Completions Pro | Completa `OrderItem.java` y `CustomerId.java` usando solo autocompletado con neighboring files |
+| `exercise/topic-05` | T05 — Chat: Prompting Profesional | Analiza `LegacyOrderController` con Chat y propón un plan de refactor en 4 pasos |
 | `exercise/topic-06` | T06 — Agent Mode | Propaga el campo `notes` en cascada usando el flujo brief→plan→execute→review |
 | `exercise/topic-08` | T08 — MCP | Genera las entidades JPA leyendo `db/schema.sql` con el MCP de PostgreSQL |
 | `exercise/topic-09` | T09 — Spring Boot | Añade `@Valid`, `GlobalExceptionHandler`, `Pageable` y `@ConfigurationProperties` |
