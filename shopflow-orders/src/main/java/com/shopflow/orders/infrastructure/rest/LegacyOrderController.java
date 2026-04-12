@@ -94,15 +94,7 @@ public class LegacyOrderController {
         }
 
         // Creación del pedido sin pasar por un caso de uso
-        Order order = new Order(
-                OrderId.generate(),
-                CustomerId.of(customerId),
-                items,
-                OrderStatus.PENDING,
-                Money.of(finalAmount),
-                discountCode,
-                java.time.Instant.now()
-        );
+        Order order = Order.create(CustomerId.of(customerId), items, discountCode);
 
         // Sin persistencia real en este ejemplo legacy
         // (en el código real aquí iría entityManager.persist(orderEntity))
