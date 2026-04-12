@@ -4,8 +4,11 @@ import com.shopflow.orders.application.OrderService;
 import com.shopflow.orders.application.command.CreateOrderCommand;
 import com.shopflow.orders.infrastructure.persistence.entity.OrderEntity;
 import com.shopflow.orders.infrastructure.rest.dto.CreateOrderRequest;
+import jakarta.validation.Valid;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,8 +39,7 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderEntity> createOrder(@RequestBody CreateOrderRequest request) {
-        // No @Valid — invalid input causes unhandled exception
+    public ResponseEntity<OrderEntity> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         CreateOrderCommand command = new CreateOrderCommand(
                 request.customerId(),
                 request.items().stream()
@@ -47,20 +49,20 @@ public class OrderController {
                 request.discountCode()
         );
         OrderEntity created = orderService.createOrder(command);
+        MDC.put("orderId", created.getId().toString());
         return ResponseEntity.status(201).body(created);
     }
 
     @GetMapping
     public Page<OrderEntity> listOrders(
             @RequestParam(required = false) String status,
-            Pageable pageable) {
-        // Pageable is already here — the exercise adds proper defaults
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return orderService.listOrders(status, pageable);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderEntity> getOrder(@PathVariable UUID id) {
-        // No error handling — OrderNotFoundException returns 500 instead of 404
+        // OrderNotFoundException → 404 via GlobalExceptionHandler
         return ResponseEntity.ok(orderService.getOrder(id));
     }
 
