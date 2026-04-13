@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Order Aggregate Root — Rich Domain Model (T12 DDD)
+ * Order Aggregate Root — Rich Domain Model.
  *
  * Business invariants are enforced here:
  * - State transitions are validated (can't ship a CANCELLED order)
@@ -14,9 +14,6 @@ import java.util.List;
  *
  * Semantic methods replace setStatus():
  *   confirm() / ship() / deliver() / cancel()
- *
- * Note: Java records don't support mutation, so we use a regular class here.
- * The record version from T04 served as a learning step — this is production-grade.
  */
 public final class Order {
 
@@ -59,8 +56,6 @@ public final class Order {
                 Instant.now()
         );
     }
-
-    // ---- Semantic state transitions (T12 DDD) ----
 
     public void confirm() {
         if (status != OrderStatus.PENDING) {

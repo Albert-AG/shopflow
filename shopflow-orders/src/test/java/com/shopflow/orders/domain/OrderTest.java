@@ -14,17 +14,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * Real tests for Order domain object (T14 solution).
- *
- * These tests were rewritten with Chat from FakeOrderTests.java:
- * "Reescribe FakeOrderTests usando validaciones precisas con AssertJ.
- *  Cada test debe FALLAR si borras la lógica de negocio que verifica."
- *
- * Key differences vs FakeOrderTests:
- * - Verify exact values, not just "not null" or "positive"
- * - Test state transitions explicitly (PENDING → CANCELLED)
- * - Test invariant violations (ship a CANCELLED order → exception)
- * - Test exact exception messages
+ * Tests for Order domain object with precise assertions.
  */
 class OrderTest {
 
@@ -114,7 +104,6 @@ class OrderTest {
         void should_cancel_pending_order() {
             Order order = Order.create(customerId, List.of(item), null);
             order.cancel();
-            // This is the assertion FakeOrderTests was missing
             assertThat(order.status()).isEqualTo(OrderStatus.CANCELLED);
         }
 
@@ -127,6 +116,7 @@ class OrderTest {
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("CANCELLED");
         }
+
 
         @Test
         @DisplayName("should fail when cancelling a SHIPPED order")
