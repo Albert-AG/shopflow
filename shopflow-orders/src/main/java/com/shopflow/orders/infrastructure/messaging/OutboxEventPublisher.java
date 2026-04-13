@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Outbox Pattern implementation (T13 — EDA solution).
+ * Outbox Pattern implementation.
  *
  * Phase 1 — Save to outbox (same DB transaction as the order):
  *   publishOrderCreated() saves to outbox_events table.
@@ -25,12 +25,6 @@ import java.util.UUID;
  *   @Scheduled job reads unpublished events and sends to Kafka.
  *   Only marks as published after Kafka confirms receipt.
  *   → At-least-once delivery (consumers must be idempotent).
- *
- * Prompt used to generate this in T13:
- * "Implementa el Outbox Pattern para publishOrderCreated().
- *  Fase 1: guarda el evento en outbox_events dentro de la misma transacción que el Order.
- *  Fase 2: job @Scheduled cada 5 segundos que lee eventos sin publicar y los envía a Kafka,
- *  marcando published_at solo si Kafka confirma (get() con timeout de 2 segundos)."
  */
 @Component
 public class OutboxEventPublisher {
