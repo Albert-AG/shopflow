@@ -6,8 +6,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * Extracted from LegacyBillingService in T15 (Step 2).
- *
  * Single Responsibility: only calculates taxes.
  * Fully testable without database or email dependencies.
  */

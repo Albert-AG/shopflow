@@ -18,12 +18,6 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Resilient payment client with Circuit Breaker, Retry, and Timeout.
  *
- * Generated in T10 with Chat:
- * "Añade a PaymentClient un Circuit Breaker que abra tras 3 fallos consecutivos,
- * un Retry con exponential backoff (3 intentos, 500ms base),
- * un Timeout de 2 segundos, y un método fallback que devuelva
- * PaymentResult con estado PENDING en lugar de lanzar excepción."
- *
  * Configuration is in application.properties (resilience4j.* prefix).
  *
  * @Primary makes Spring inject this instead of PaymentClient

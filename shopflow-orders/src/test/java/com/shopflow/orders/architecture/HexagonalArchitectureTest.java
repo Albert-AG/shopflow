@@ -12,15 +12,10 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 /**
  * ArchUnit tests enforcing Hexagonal Architecture rules.
  *
- * EXERCISE T11: These tests FAIL on exercise/topic-11.
- * They PASS on v11-hexagonal.
- *
  * The three rules enforced:
  * 1. Domain layer has no dependencies on infrastructure layer
  * 2. Domain layer has no dependencies on Spring annotations
  * 3. Infrastructure layer accesses domain only via ports (interfaces)
- *
- * When all three tests are green, the hexagonal refactoring is complete.
  */
 class HexagonalArchitectureTest {
 
