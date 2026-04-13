@@ -16,10 +16,6 @@ import java.util.UUID;
 
 /**
  * Application service for the Order bounded context.
- *
- * Note: this class will be refactored in T11 (Hexagonal Architecture)
- * to depend on a port (interface) instead of JpaOrderRepository directly.
- * For now it calls the JPA repository directly — that's intentional for the T11 exercise.
  */
 @Service
 @Transactional

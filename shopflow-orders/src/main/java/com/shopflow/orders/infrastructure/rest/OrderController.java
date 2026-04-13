@@ -16,15 +16,6 @@ import java.util.UUID;
 
 /**
  * REST adapter for the Orders resource.
- *
- * EXERCISE STATE (T09): This controller is functional but missing quality layers:
- * - No @Valid on request body (invalid input returns 500 instead of 400)
- * - No GlobalExceptionHandler (exceptions leak as 500 with stack trace)
- * - No MDC / structured logging
- * - No @ConfigurationProperties (magic numbers hardcoded)
- *
- * The student adds these layers in T09 using Chat + completions.
- * See exercise/topic-09 branch.
  */
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -62,7 +53,6 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderEntity> getOrder(@PathVariable UUID id) {
-        // OrderNotFoundException → 404 via GlobalExceptionHandler
         return ResponseEntity.ok(orderService.getOrder(id));
     }
 
