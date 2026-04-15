@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: Inventory API
+  version: 1.0.0
+paths:
+  /api/inventory:
+    post:
+      operationId: createInventoryItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryItemRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponse'
+components:
+  schemas:
+    CreateInventoryItemRequest:
+      type: object
+      required: [sku, name, quantity]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 0
+    InventoryItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
