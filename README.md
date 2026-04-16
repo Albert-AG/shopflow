@@ -2,9 +2,8 @@
 
 ## 🎯 Objetivo
 
-Transformar un `PaymentClient` frágil en un cliente indestructible añadiendo las cuatro
-capas de resiliencia con Resilience4j: timeout, retry, circuit breaker y fallback.
-El stub de pagos falla aleatoriamente — igual que en producción.
+Usar las herramientas del plugin del curso para detectar y corregir los problemas de resiliencia
+en `PaymentClient`. El subagente diagnostica; la skill aplica los patrones; los tests verifican.
 
 ---
 
@@ -13,11 +12,11 @@ El stub de pagos falla aleatoriamente — igual que en producción.
 ```bash
 git checkout exercise/topic-10
 git checkout -b mi-solucion/topic-10
-docker-compose up -d   # levanta postgres + payments-stub
-mvn test -pl shopflow-orders   # debe pasar el EnvironmentSanityCheck
+docker-compose up -d          # levanta postgres + payments-stub (puerto 8081)
+mvn test -pl shopflow-orders  # EnvironmentSanityCheck debe estar en verde
 ```
 
-El módulo `shopflow-payments-stub` ya está levantado. Simula un servicio de pagos real:
+El `payments-stub` simula un servicio de pagos real con fallos aleatorios:
 - 20% de requests → `503 Service Unavailable`
 - 30% de requests → delay aleatorio de 3-8 segundos
 - 50% de requests → respuesta normal (15% declined, 85% approved)
@@ -30,12 +29,19 @@ El módulo `shopflow-payments-stub` ya está levantado. Simula un servicio de pa
 
 ```java
 // PaymentClient.java — estado actual (frágil)
-public PaymentResult processPayment(PaymentRequest request) {
-    return restClient.post()
-        .uri("/payments")
-        .body(request)
-        .retrieve()
-        .body(PaymentResult.class);
+public PaymentResult processPayment(UUID orderId, BigDecimal amount) {
+    Map<String, Object> request = Map.of(
+            "orderId", orderId.toString(),
+            "amount", amount.toPlainString());
+
+    Map<?, ?> response = restClient.post()
+            .uri("/api/payments/process")
+            .body(request)
+            .retrieve()
+            .body(Map.class);
+
+    return new PaymentResult((String) response.get("paymentId"), orderId,
+            "APPROVED".equals(response.get("status")));
     // Sin timeout: si el stub tarda 8s, tu thread queda bloqueado 8s
     // Sin retry: un 503 transitorio falla toda la orden
     // Sin circuit breaker: si el stub cae, cada request sigue bloqueando un thread
@@ -43,75 +49,98 @@ public PaymentResult processPayment(PaymentRequest request) {
 }
 ```
 
-Observa el problema antes de modificar nada:
+También existe `ResilientPaymentClient`, que envuelve a `PaymentClient` y está anotada con
+`@Primary`, pero su implementación es un esqueleto vacío que todavía delega directamente
+sin aplicar ninguna capa de resiliencia.
+
+Confirma el estado actual antes de empezar:
 
 ```bash
 mvn test -pl shopflow-orders -Dtest=PaymentClientResilienceTest
-# Algunos threads quedan colgados. El test tarda mucho más de lo esperado.
+```
+
+Verás 5 tests fallando. El de timeout tarda 5 segundos — el thread queda bloqueado
+porque no hay `TimeLimiter`. Los demás lanzan `ServiceUnavailableException` porque no
+hay `Retry` ni fallback.
+
+---
+
+## Ejercicio
+
+### Paso 1 — Diagnóstico con `spring-resilience-reviewer`
+
+Invoca el subagente sobre `PaymentClient.java`:
+
+```
+@spring-resilience-reviewer Revisa el fichero shopflow-orders/src/main/java/com/shopflow/orders/infrastructure/payments/PaymentClient.java
+```
+
+El subagente debe detectar como mínimo estos cuatro problemas:
+
+| Problema | Por qué importa |
+|---|---|
+| Sin timeout | Un stub lento bloquea el thread indefinidamente |
+| Sin `CircuitBreaker` | Si el stub cae, cada request sigue intentándolo hasta agotar el pool |
+| Sin `Retry` | Un 503 transitorio falla la orden completa en lugar de reintentarse |
+| Sin fallback | La excepción se propaga al caller; no hay degradación controlada |
+
+> Si el subagente no detecta alguno de estos problemas, documéntalo — es un hallazgo
+> sobre la calidad del subagente, no un error tuyo.
+
+### Paso 2 — Solución con `/add-resilience`
+
+Ejecuta la skill sobre `ResilientPaymentClient`:
+
+```
+/add-resilience
+```
+
+Cuando la skill pregunte:
+- **¿Qué componente fortalecer?** → `ResilientPaymentClient.java`
+- **¿Comportamiento de fallback?** → "Si el pago falla por timeout, retry agotado o circuito abierto, devolver `PaymentResult` con `paymentId = "PENDING"` y `approved = false`. El pedido queda en estado pendiente y el pago se reintentará más tarde."
+
+La skill te mostrará su análisis y pedirá confirmación antes de aplicar cambios.
+**Revisa el plan antes de decir que sí** — ese es el punto: tú eres el Senior que valida.
+
+La configuración de Resilience4j ya está en `application.properties`. La skill no
+necesita añadirla, solo debe implementar la lógica en `ResilientPaymentClient`.
+
+### Paso 3 — Verificación
+
+```bash
+mvn test -pl shopflow-orders -Dtest=PaymentClientResilienceTest
+# Resultado esperado: 5/5 tests en verde
+#   ✅ Timeout: completa en <2.5s con fallback PENDING
+#   ✅ Retry: dos 503 transitorios seguidos de éxito → approved=true
+#   ✅ Fallback: reintentos agotados → PENDING sin excepción
+#   ✅ CircuitBreaker: tras varios fallos, llamadas rechazadas en <200ms
+#   ✅ No retry en 422: exactamente una llamada al delegate
+```
+
+Suite completa:
+
+```bash
+mvn test -pl shopflow-orders
 ```
 
 ---
 
-## Ejercicio — El Cliente Indestructible
+## Prueba manual con el stub levantado
 
-Crea `ResilientPaymentClient` que envuelva al `PaymentClient` original con las cuatro capas.
-Usa Resilience4j directamente (no Spring Cloud Circuit Breaker).
-
-### Capa 1 — Timeout
-
-Añade un `TimeLimiter` de 2 segundos. Si el stub no responde en 2 segundos,
-la llamada debe lanzar una excepción, no bloquear el thread.
-
-### Capa 2 — Retry con exponential backoff
-
-Añade un `Retry` con 3 intentos máximos y backoff exponencial (500ms base).
-Solo reintenta en errores de red y 503. No reintenta en 400 ni 422.
-
-### Capa 3 — Circuit Breaker
-
-Añade un `CircuitBreaker` que abra tras 3 fallos consecutivos. Cuando esté abierto,
-las llamadas deben fallar inmediatamente (sin llegar al stub) durante 30 segundos.
-
-### Capa 4 — Fallback
-
-Cuando falle todo lo anterior (timeout, reintentos agotados, circuito abierto),
-el método debe devolver un `PaymentResult` con estado `PENDING` en lugar de lanzar excepción.
-El pedido se procesa igualmente — el pago se reintentará en un job posterior.
-
-**Configuración Resilience4j en `application.properties`:**
-```properties
-resilience4j.circuitbreaker.instances.payment.slidingWindowSize=10
-resilience4j.circuitbreaker.instances.payment.failureRateThreshold=50
-resilience4j.circuitbreaker.instances.payment.waitDurationInOpenState=30s
-resilience4j.retry.instances.payment.maxAttempts=3
-resilience4j.retry.instances.payment.waitDuration=500ms
-resilience4j.timelimiter.instances.payment.timeoutDuration=2s
-```
-
-> ⚠️ Usa `@Primary` en `ResilientPaymentClient` para que Spring lo inyecte
-> en lugar del `PaymentClient` original. El `PaymentClient` original no se modifica.
-
----
-
-## Verificación
+Con `docker-compose up -d` activo, crea 10 órdenes consecutivas y observa cómo
+el circuit breaker gestiona los fallos aleatorios del stub:
 
 ```bash
-mvn test -pl shopflow-orders -Dtest=PaymentClientResilienceTest
-# Resultado esperado:
-# - Ningún thread queda bloqueado más de 2 segundos
-# - Los 503 transitorios se reintentan automáticamente
-# - El fallback devuelve PaymentResult con estado PENDING
-```
-
-Prueba manual con el stub levantado:
-```bash
-# Crea 10 órdenes y observa cómo el circuit breaker las gestiona
 for i in {1..10}; do
   curl -s -X POST http://localhost:8080/orders \
     -H "Content-Type: application/json" \
-    -d '{"customerId":"cust-1","items":[{"productId":"prod-1","quantity":2}]}' | jq .status
+    -d '{"customerId":"cust-1","items":[{"productId":"prod-1","quantity":2}]}' \
+    | jq '{status: .status, paymentId: .paymentId}'
 done
 ```
+
+Deberías ver una mezcla de `APPROVED`, `DECLINED` y `PENDING` — este último indica
+que el fallback se disparó y el pago se procesará más tarde.
 
 ---
 
@@ -142,26 +171,22 @@ o `breaking change`. Si hay cambios breaking, propone un plan de migración con 
 versiones conviviendo.
 
 **Verificación:**
-```bash
+
+```
 # Invoca spring-observability-reviewer sobre shopflow-orders
 # Debe detectar ausencia de métricas en el fallback del PaymentClient
-
-# Crea un contrato v2 de orders con un campo requerido añadido
-# y verifica que la skill lo clasifica como breaking
-/audit-contracts shopflow-orders/src/main/resources/openapi.yaml docs/openapi-v2.yaml
 ```
 
 Documenta en el commit:
 - ¿Qué hallazgo de observabilidad consideras más urgente y por qué?
-- ¿Cuál es el cambio breaking más difícil de detectar sin herramienta automatizada?
 
 ---
 
 ## Criterios de éxito ✅
 
-- `PaymentClientResilienceTest` en verde sin threads bloqueados ✅
+- `PaymentClientResilienceTest` 5/5 en verde ✅
 - Fallback devuelve `PaymentResult(PENDING)` cuando se agota el retry ✅
-- Circuit breaker se abre tras 3 fallos y rechaza inmediatamente durante 30s ✅
+- Circuit breaker rechaza llamadas inmediatamente tras varios fallos ✅
 - Configuración en `application.properties`, no hardcodeada en el código ✅
 - `mvn test -pl shopflow-orders` en verde ✅
 

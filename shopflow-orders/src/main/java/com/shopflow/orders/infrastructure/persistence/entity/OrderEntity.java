@@ -46,7 +46,7 @@ public class OrderEntity {
     private String discountCode;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "shipping_address", columnDefinition = "jsonb")
+    @Column(name = "shipping_address")
     private Map<String, Object> shippingAddress;
 
     @Column(name = "notes", columnDefinition = "text")

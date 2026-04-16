@@ -2,6 +2,7 @@ package com.shopflow.orders.infrastructure.payments;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -19,9 +20,9 @@ public class PaymentClient {
 
     private final RestClient restClient;
 
-    public PaymentClient() {
+    public PaymentClient(@Value("${shopflow.payments.base-url:http://localhost:8081}") String baseUrl) {
         this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:8081")
+                .baseUrl(baseUrl)
                 .build();
     }
 
