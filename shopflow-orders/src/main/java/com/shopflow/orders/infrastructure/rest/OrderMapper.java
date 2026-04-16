@@ -1,7 +1,9 @@
 package com.shopflow.orders.infrastructure.rest;
 
 import com.shopflow.orders.domain.model.*;
+import com.shopflow.orders.infrastructure.persistence.entity.OrderEntity;
 import com.shopflow.orders.infrastructure.rest.dto.CreateOrderRequest;
+import com.shopflow.orders.infrastructure.rest.dto.CreateOrderResponse;
 import com.shopflow.orders.infrastructure.rest.dto.OrderResponse;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +44,15 @@ public class OrderMapper {
                 item.quantity(),
                 item.unitPrice().amount().toPlainString(),
                 item.subtotal().amount().toPlainString()
+        );
+    }
+
+    public CreateOrderResponse toCreateOrderResponse(OrderEntity order, String status, String paymentId) {
+        return new CreateOrderResponse(
+                order.getId().toString(),
+                status,
+                paymentId,
+                order.getTotalAmount().toPlainString()
         );
     }
 }

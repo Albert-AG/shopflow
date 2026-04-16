@@ -2,6 +2,7 @@ package com.shopflow.orders.application;
 
 import com.shopflow.orders.application.command.CreateOrderCommand;
 import com.shopflow.orders.domain.model.*;
+import com.shopflow.orders.infrastructure.payments.PaymentClient;
 import com.shopflow.orders.infrastructure.persistence.JpaOrderRepository;
 import com.shopflow.orders.infrastructure.persistence.entity.OrderEntity;
 import com.shopflow.orders.infrastructure.persistence.entity.OrderItemEntity;
@@ -56,6 +57,18 @@ public class OrderService {
             order.getItems().add(item);
         });
 
+        return orderRepository.save(order);
+    }
+
+    public OrderEntity updatePaymentStatus(UUID orderId, PaymentClient.PaymentResult paymentResult) {
+        OrderEntity order = getOrder(orderId);
+        if ("PENDING".equals(paymentResult.paymentId())) {
+            order.setStatus(OrderStatus.PENDING.name());
+        } else if (paymentResult.approved()) {
+            order.setStatus(OrderStatus.CONFIRMED.name());
+        } else {
+            order.setStatus(OrderStatus.CANCELLED.name());
+        }
         return orderRepository.save(order);
     }
 

@@ -132,9 +132,9 @@ el circuit breaker gestiona los fallos aleatorios del stub:
 
 ```bash
 for i in {1..10}; do
-  curl -s -X POST http://localhost:8080/orders \
+  curl -s -X POST http://localhost:8080/api/v1/orders \
     -H "Content-Type: application/json" \
-    -d '{"customerId":"cust-1","items":[{"productId":"prod-1","quantity":2}]}' \
+    -d '{"customerId":"11111111-1111-1111-1111-111111111111","items":[{"productId":"22222222-2222-2222-2222-222222222222","quantity":2,"unitPrice":"10.00"}]}' \
     | jq '{status: .status, paymentId: .paymentId}'
 done
 ```

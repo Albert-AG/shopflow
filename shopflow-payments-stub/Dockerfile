@@ -8,7 +8,7 @@ COPY pom.xml pom.xml
 COPY shopflow-payments-stub/pom.xml shopflow-payments-stub/pom.xml
 COPY shopflow-payments-stub/src shopflow-payments-stub/src
 
-RUN mvn package -pl shopflow-payments-stub -DskipTests --no-transfer-progress
+RUN mvn -f shopflow-payments-stub/pom.xml package -DskipTests --no-transfer-progress
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

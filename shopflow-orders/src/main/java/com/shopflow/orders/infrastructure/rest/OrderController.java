@@ -1,9 +1,11 @@
 package com.shopflow.orders.infrastructure.rest;
 
+import com.shopflow.orders.application.OrderCheckoutService;
 import com.shopflow.orders.application.OrderService;
 import com.shopflow.orders.application.command.CreateOrderCommand;
 import com.shopflow.orders.infrastructure.persistence.entity.OrderEntity;
 import com.shopflow.orders.infrastructure.rest.dto.CreateOrderRequest;
+import com.shopflow.orders.infrastructure.rest.dto.CreateOrderResponse;
 import jakarta.validation.Valid;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
@@ -21,16 +23,20 @@ import java.util.UUID;
 @RequestMapping("/api/v1/orders")
 public class OrderController {
 
+    private final OrderCheckoutService orderCheckoutService;
     private final OrderService orderService;
     private final OrderMapper orderMapper;
 
-    public OrderController(OrderService orderService, OrderMapper orderMapper) {
+    public OrderController(OrderCheckoutService orderCheckoutService,
+                           OrderService orderService,
+                           OrderMapper orderMapper) {
+        this.orderCheckoutService = orderCheckoutService;
         this.orderService = orderService;
         this.orderMapper = orderMapper;
     }
 
     @PostMapping
-    public ResponseEntity<OrderEntity> createOrder(@Valid @RequestBody CreateOrderRequest request) {
+    public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         CreateOrderCommand command = new CreateOrderCommand(
                 request.customerId(),
                 request.items().stream()
@@ -39,9 +45,10 @@ public class OrderController {
                         .toList(),
                 request.discountCode()
         );
-        OrderEntity created = orderService.createOrder(command);
-        MDC.put("orderId", created.getId().toString());
-        return ResponseEntity.status(201).body(created);
+        OrderCheckoutService.OrderCheckoutResult created = orderCheckoutService.createOrder(command);
+        MDC.put("orderId", created.order().getId().toString());
+        return ResponseEntity.status(201)
+                .body(orderMapper.toCreateOrderResponse(created.order(), created.status(), created.paymentId()));
     }
 
     @GetMapping
