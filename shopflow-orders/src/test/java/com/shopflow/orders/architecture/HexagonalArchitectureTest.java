@@ -45,14 +45,15 @@ class HexagonalArchitectureTest {
     }
 
     @Test
-    @DisplayName("Infrastructure classes must not directly use domain model classes (only ports)")
-    void infrastructureMustAccessDomainOnlyThroughPorts() {
-        // Infrastructure adapters should depend on domain.port interfaces, not concrete services
-        // This rule checks that infrastructure.rest does not import domain.service directly
+    @DisplayName("REST adapter must depend on ports, not on concrete application services")
+    void restAdapterMustDependOnPorts() {
+        // OrderController should inject CreateOrderUseCase / GetOrderUseCase (domain ports),
+        // not OrderService (concrete application class).
+        // This enforces the Dependency Inversion Principle at the REST adapter boundary.
         ArchRule rule = noClasses()
                 .that().resideInAPackage("..infrastructure.rest..")
                 .should().dependOnClassesThat()
-                .resideInAPackage("..domain.service..");
+                .resideInAPackage("..application..");
 
         rule.check(classes);
     }

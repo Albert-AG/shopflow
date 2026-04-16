@@ -22,29 +22,27 @@ Los tests de ArchUnit **fallan**. Eso es correcto — es el punto de partida del
 
 ## El problema
 
-`OrderService` viola la Regla de Dependencia de Puertos y Adaptadores:
+Hay tres violaciones de la Regla de Dependencia que rompen los tests de ArchUnit:
 
-| Violación | Dónde |
-|---|---|
-| Importa `JpaOrderRepository` directamente desde `infrastructure.persistence` | `OrderService.java` |
-| No implementa los puertos `CreateOrderUseCase` / `GetOrderUseCase` | `OrderService.java` |
-| `@Service` y `@Transactional` en el paquete `application` pero el servicio tiene lógica de dominio | `OrderService.java` |
-
-Los tests que fallan:
+| Test que falla | Violación | Clase responsable |
+|---|---|---|
+| `domainMustNotDependOnInfrastructure` | `OrderDomainService` (capa `domain`) importa `JpaOrderRepository` y `OrderEntity` de la capa `infrastructure` | `domain/service/OrderDomainService.java` |
+| `domainMustNotUseSpringAnnotations` | `OrderDomainService` tiene `@Service` y `@Transactional` — anotaciones de framework en la capa de dominio | `domain/service/OrderDomainService.java` |
+| `restAdapterMustDependOnPorts` | `OrderController` inyecta `OrderService` (clase concreta de `application`) en lugar de los puertos `CreateOrderUseCase` / `GetOrderUseCase` | `infrastructure/rest/OrderController.java` |
 
 ```bash
 mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
 # domainMustNotDependOnInfrastructure — FAILS
 # domainMustNotUseSpringAnnotations — FAILS
-# infrastructureMustAccessDomainOnlyThroughPorts — FAILS
+# restAdapterMustDependOnPorts — FAILS
 ```
 
-Los puertos ya existen en la rama (están como referencia):
+Los puertos ya existen en la rama como referencia:
 - `domain/port/in/CreateOrderUseCase.java`
 - `domain/port/in/GetOrderUseCase.java`
-- `domain/port/out/OrderRepository.java` (desde T04)
+- `domain/port/out/OrderRepository.java`
 
-Tu misión: conectar todo para que los tests pasen.
+Tu misión: conectar todo para que los tres tests pasen.
 
 ---
 
@@ -53,43 +51,84 @@ Tu misión: conectar todo para que los tests pasen.
 Usa Agent Mode para refactorizar en 3 pasos. **Muestra el plan del agente antes de ejecutarlo**
 en cada paso — no apliques cambios sin revisarlos.
 
-### Paso 1 — Crea el adaptador de persistencia
+### Paso 1 — Elimina la clase con violaciones de dominio
 
-Crea `JpaOrderRepositoryAdapter` en `infrastructure/persistence/` que:
-- Implemente `OrderRepository` (el puerto de salida)
+Elimina `OrderDomainService` de `domain/service/`. Esta clase tiene `@Service`, `@Transactional`
+e importa `JpaOrderRepository` y `OrderEntity` — todo ello viola las dos primeras reglas.
+Su lógica ya existe en `OrderService` (capa `application`), que es donde corresponde.
+
+```bash
+mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
+# domainMustNotDependOnInfrastructure — debe pasar ahora
+# domainMustNotUseSpringAnnotations — debe pasar ahora
+# restAdapterMustDependOnPorts — todavía falla
+```
+
+### Paso 2 — Crea el adaptador de persistencia y el servicio de aplicación
+
+**2a.** Crea `JpaOrderRepositoryAdapter` en `infrastructure/persistence/` que:
+- Implemente el puerto `OrderRepository` (en `domain/port/out/`)
 - Use `JpaOrderRepository` internamente
 - Mapee entre `Order` (dominio) y `OrderEntity` (JPA)
 
-Verifica que `Order` (dominio) no tiene ninguna anotación de Spring o JPA.
+**2b.** Crea `OrderApplicationService` en `application/` que:
+- Implemente `CreateOrderUseCase` y `GetOrderUseCase`
+- Reciba `OrderRepository` (el puerto, no `JpaOrderRepository`) por constructor
+- Tenga `@Service` y `@Transactional` en la capa de aplicación — correcto
+
+Verifica que `OrderApplicationService` no importa ninguna clase de `infrastructure.*`.
 
 ```bash
 mvn compile -pl shopflow-orders -q   # debe compilar sin errores
 ```
 
-### Paso 2 — Crea el servicio de aplicación
+### Paso 3 — Conecta el REST adapter con los puertos
 
-Crea (o refactoriza) `OrderApplicationService` en `application/` que:
-- Implemente `CreateOrderUseCase` y `GetOrderUseCase`
-- Reciba `OrderRepository` por constructor (el puerto, no la implementación JPA)
-- Tenga `@Service` y `@Transactional` (Spring solo en la capa de aplicación)
-
-Verifica que `OrderApplicationService` no importa ninguna clase de `infrastructure.*`.
-
-```bash
-mvn compile -pl shopflow-orders -q
-```
-
-### Paso 3 — Conecta los adaptadores
-
-Actualiza la configuración de Spring para que inyecte `JpaOrderRepositoryAdapter`
-donde se necesite `OrderRepository`.
+Refactoriza `OrderController` para que inyecte `CreateOrderUseCase` y `GetOrderUseCase`
+en lugar de `OrderService`. Con este cambio, `infrastructure.rest` ya no depende de
+`application.*` y el tercer test pasa.
 
 ```bash
 mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
-# Los tres tests deben pasar
+# Los tres tests deben pasar ✅
 mvn test -pl shopflow-orders
-# Todos los tests deben pasar
+# Todos los tests en verde ✅
 ```
+
+---
+
+## Compara: solución manual vs. skill
+
+Ya tienes los tres tests en verde en `mi-solucion/topic-11`. Ahora repite el diagnóstico
+y la refactorización usando las herramientas del plugin del curso — sin conversación libre con
+el agente — y compara si obtienes el mismo resultado.
+
+```bash
+git checkout exercise/topic-11
+git checkout -b mi-solucion/topic-11-skill
+```
+
+1. Invoca el subagente `@spring-architecture-guard` sobre el módulo `shopflow-orders`.
+   Anota qué violaciones detecta y en qué clases.
+
+2. Ejecuta `/audit-architecture` para que el agente aplique las correcciones.
+   Sigue el plan que proponga antes de aprobar cada paso.
+
+3. Verifica que los tres tests pasan:
+
+```bash
+mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
+mvn test -pl shopflow-orders
+```
+
+4. Compara ambas ramas:
+
+```bash
+git diff mi-solucion/topic-11 mi-solucion/topic-11-skill
+```
+
+¿El skill llega a la misma solución? ¿Detecta las mismas violaciones? ¿En qué difiere
+el camino (pasos, orden, código generado)?
 
 ---
 
