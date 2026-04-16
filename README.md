@@ -28,7 +28,9 @@ Hay tres violaciones de la Regla de Dependencia que rompen los tests de ArchUnit
 |---|---|---|
 | `domainMustNotDependOnInfrastructure` | `OrderDomainService` (capa `domain`) importa `JpaOrderRepository` y `OrderEntity` de la capa `infrastructure` | `domain/service/OrderDomainService.java` |
 | `domainMustNotUseSpringAnnotations` | `OrderDomainService` tiene `@Service` y `@Transactional` — anotaciones de framework en la capa de dominio | `domain/service/OrderDomainService.java` |
-| `restAdapterMustDependOnPorts` | `OrderController` inyecta `OrderService` (clase concreta de `application`) en lugar de los puertos `CreateOrderUseCase` / `GetOrderUseCase` | `infrastructure/rest/OrderController.java` |
+| `restAdapterMustDependOnPorts` | `OrderController` importa `OrderService` (clase concreta) y `CreateOrderCommand` (ambos en `application.*`) en lugar de depender solo de los puertos | `infrastructure/rest/OrderController.java` |
+
+> **Nota**: `CreateOrderCommand` está en `application/command/`, pero es parte del contrato del puerto de entrada — pertenece a `domain/port/in/`. Mientras permanezca en `application.*`, `OrderController` seguirá violando la regla aunque elimines la dependencia de `OrderService`.
 
 ```bash
 mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
@@ -48,7 +50,7 @@ Tu misión: conectar todo para que los tres tests pasen.
 
 ## Ejercicio — El Desafío del Hexágono
 
-Usa Agent Mode para refactorizar en 3 pasos. **Muestra el plan del agente antes de ejecutarlo**
+Usa Agent Mode para refactorizar paso a paso. **Muestra el plan del agente antes de ejecutarlo**
 en cada paso — no apliques cambios sin revisarlos.
 
 ### Paso 1 — Elimina la clase con violaciones de dominio
@@ -82,11 +84,42 @@ Verifica que `OrderApplicationService` no importa ninguna clase de `infrastructu
 mvn compile -pl shopflow-orders -q   # debe compilar sin errores
 ```
 
-### Paso 3 — Conecta el REST adapter con los puertos
+### Paso 3 — Mueve `CreateOrderCommand` al paquete de puertos
 
-Refactoriza `OrderController` para que inyecte `CreateOrderUseCase` y `GetOrderUseCase`
-en lugar de `OrderService`. Con este cambio, `infrastructure.rest` ya no depende de
-`application.*` y el tercer test pasa.
+`CreateOrderCommand` pertenece al contrato del puerto de entrada, no a la capa de
+aplicación. Muévelo de `application/command/` a `domain/port/in/` y actualiza todos
+los imports (`CreateOrderUseCase`, `OrderService`, `OrderController`).
+
+```bash
+mvn compile -pl shopflow-orders -q   # debe compilar sin errores
+```
+
+### Paso 4 — Crea `CancelOrderUseCase` y completa el servicio de aplicación
+
+`OrderController` también tiene un endpoint `cancelOrder` que usa `OrderService`.
+Sin un puerto para cancelar, el controlador nunca podrá dejar de depender de `application.*`.
+
+**4a.** Crea `CancelOrderUseCase` en `domain/port/in/`:
+
+```java
+public interface CancelOrderUseCase {
+    Order cancel(UUID id);
+}
+```
+
+**4b.** Haz que `OrderApplicationService` implemente también `CancelOrderUseCase`.
+
+```bash
+mvn compile -pl shopflow-orders -q   # debe compilar sin errores
+```
+
+### Paso 5 — Conecta el REST adapter con los puertos
+
+Refactoriza `OrderController` para que inyecte `CreateOrderUseCase`, `GetOrderUseCase`
+y `CancelOrderUseCase` en lugar de `OrderService`. Con este cambio, `infrastructure.rest`
+ya no depende de `application.*` y el tercer test pasa.
+
+Usa `OrderMapper` para convertir los objetos `Order` (dominio) a `OrderResponse` (DTO).
 
 ```bash
 mvn test -pl shopflow-orders -Dtest=HexagonalArchitectureTest
@@ -188,6 +221,8 @@ mvn test -pl shopflow-orders
 - `OrderApplicationService` no importa nada de `infrastructure.*` ✅
 - `Order` (dominio) no tiene anotaciones de Spring ni JPA ✅
 - `JpaOrderRepositoryAdapter` implementa `OrderRepository` y usa `JpaOrderRepository` internamente ✅
+- `CreateOrderCommand` reside en `domain/port/in/`, no en `application/command/` ✅
+- `OrderController` solo importa de `domain.*` e `infrastructure.*` — cero imports de `application.*` ✅
 
 ---
 
